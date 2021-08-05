@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 )
@@ -30,5 +32,43 @@ func TestCountMinSketch(t *testing.T) {
 		if res != d.count {
 			t.Errorf("expected %d for %q, but got %d", d.count, d.word, res)
 		}
+	}
+}
+
+func BenchmarkCountMinSketch(b *testing.B) {
+	numItems := 10000000
+	maxNum := 1000000.0
+	items := make([]string, numItems)
+	for i := 0; i < numItems; i++ {
+		items[i] = fmt.Sprintf("%d", int(rand.Float64()*maxNum))
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bins := 1024 * 1024
+		hashFuncs := 3
+		c := NewCountMinSketch(bins, hashFuncs)
+		for j := 0; j < numItems; j++ {
+			c.Add(items[j])
+		}
+		b.Logf("estimating %d count for %s", c.Count(fmt.Sprintf("1")), fmt.Sprintf("1"))
+	}
+}
+
+func BenchmarkBasicMap(b *testing.B) {
+	numItems := 10000000
+	maxNum := 1000000.0
+	items := make([]string, numItems)
+	for i := 0; i < numItems; i++ {
+		items[i] = fmt.Sprintf("%d", int(rand.Float64()*maxNum))
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		basicMap := make(map[string]int)
+		for j := 0; j < numItems; j++ {
+			basicMap[items[j]] += 1
+		}
+		b.Logf("estimating %d count for %s", basicMap[fmt.Sprintf("1")], fmt.Sprintf("1"))
 	}
 }

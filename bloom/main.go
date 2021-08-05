@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"github.com/OneOfOne/xxhash"
 	"math/rand"
 )
@@ -27,24 +26,20 @@ func (b *Bloom) Reset() {
 	}
 }
 
-func (b *Bloom) Add(uid uint64) {
+func (b *Bloom) Add(val string) {
 	var bucketIdx, bucketOffset int
 
-	uidb := make([]byte, 8)
-	binary.BigEndian.PutUint64(uidb, uid)
 	for _, hf := range b.hashFuncs {
-		bucketIdx, bucketOffset = b.hash(hf, uidb)
+		bucketIdx, bucketOffset = b.hash(hf, []byte(val))
 		b.buckets[bucketIdx] = b.buckets[bucketIdx] | bucketBitmask(bucketOffset)
 	}
 }
 
-func (b *Bloom) Exists(uid uint64) bool {
+func (b *Bloom) Exists(val string) bool {
 	var bucketIdx, bucketOffset int
 
-	uidb := make([]byte, 8)
-	binary.BigEndian.PutUint64(uidb, uid)
 	for _, hf := range b.hashFuncs {
-		bucketIdx, bucketOffset = b.hash(hf, uidb)
+		bucketIdx, bucketOffset = b.hash(hf, []byte(val))
 
 		// got a bucket that was not set, so it is definitely not in the filter
 		if b.buckets[bucketIdx]&bucketBitmask(bucketOffset) == 0 {
@@ -54,8 +49,8 @@ func (b *Bloom) Exists(uid uint64) bool {
 	return true
 }
 
-func (b *Bloom) hash(hf *xxhash.XXHash64, uidb []byte) (int, int) {
-	hf.Write(uidb)
+func (b *Bloom) hash(hf *xxhash.XXHash64, val []byte) (int, int) {
+	hf.Write(val)
 	idx := int(hf.Sum64() % uint64(len(b.buckets)*8))
 	hf.Reset()
 	return idx / 8, idx % 8
